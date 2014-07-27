@@ -77,6 +77,7 @@ pvtestSet <- predict(preModel, vtestSet[, num_idx])
 
 ###Linear Model and associated error
 Building a linear model with linear discriminant analysis and cross-validation
+
 ```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 cvControl <- trainControl(method = "cv", number = 5)
 set.seed(3)
@@ -88,11 +89,13 @@ cln
 #plot for linear model
 qplot(ptrntrainSet$classe,pln,col=ptrntrainSet$classe)
 ```
+
 Accuracy through linear model `r cln$overall[1]*100`%
 Sample error`r (1-cln$overall[1])*100`%>.3 and dot plot showing prediction hitting everywhere which means we can do better
 
 ###Rainforest Model
 Trying a nonlinear model, using training data set within the give pml training set
+
 ```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 rf_model <- randomForest(classe ~ ., ptrntrainSet)
 ```
@@ -106,7 +109,8 @@ print(confusionMatrix(train_pred, ptrntrainSet$classe))
 #plot for training data set accuracy
 qplot(ptrntrainSet$classe,train_pred,col=ptrntrainSet$classe)
 ```
-We can see graph is showing prediciton and actual values are perfectly lined up
+
+Prediction and Actual Values are perfectly lined up in the graph
 
 ####test data set accuracy
 ```{r,cache=TRUE,echo=TRUE,warning=FALSE}
@@ -116,11 +120,14 @@ print(tm)
 #plot for test data set accuracy
 qplot(ptsttrainSet$classe,test_pred,col=ptsttrainSet$classe)
 ```
-Accuracy through test data set `r tm$overall[1]*100`% which means it i good model!!
+
+Accuracy through test data set `r tm$overall[1]*100`% which means it is good model!!
+
 well graph is showing some dots away from the actual values, but as we can see from confusion matrix only few values are deviating.
 
 ##Test Set Prediction Results
 Using the Random Forest Model to predict the values for the requested test cases
+
 ```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 answers<-predict(rf_model,pvtestSet)
 answers
@@ -128,6 +135,7 @@ answers
 
 ###Writing output files
 Print out the submission file
+
 ```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 pml_write_files = function(x) {
     n = length(x)

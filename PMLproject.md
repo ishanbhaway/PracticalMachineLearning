@@ -146,6 +146,7 @@ pvtestSet <- predict(preModel, vtestSet[, num_idx])
 ###Linear Model and associated error
 Building a linear model with linear discriminant analysis and cross-validation
 
+
 ```r
 cvControl <- trainControl(method = "cv", number = 5)
 set.seed(3)
@@ -219,11 +220,13 @@ qplot(ptrntrainSet$classe,pln,col=ptrntrainSet$classe)
 ```
 
 ![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5.png) 
+
 Accuracy through linear model 51.7435%
 Sample error48.2565%>.3 and dot plot showing prediction hitting everywhere which means we can do better
 
 ###Rainforest Model
 Trying a nonlinear model, using training data set within the give pml training set
+
 
 ```r
 rf_model <- randomForest(classe ~ ., ptrntrainSet)
@@ -278,7 +281,8 @@ qplot(ptrntrainSet$classe,train_pred,col=ptrntrainSet$classe)
 ```
 
 ![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
-We can see graph is showing prediciton and actual values are perfectly lined up
+
+Prediction and Actual Values are perfectly lined up in the graph
 
 ####test data set accuracy
 
@@ -328,11 +332,14 @@ qplot(ptsttrainSet$classe,test_pred,col=ptsttrainSet$classe)
 ```
 
 ![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
-Accuracy through test data set 99.2523% which means it i good model!!
+
+Accuracy through test data set 99.2523% which means it is good model!!
+
 well graph is showing some dots away from the actual values, but as we can see from confusion matrix only few values are deviating.
 
 ##Test Set Prediction Results
 Using the Random Forest Model to predict the values for the requested test cases
+
 
 ```r
 answers<-predict(rf_model,pvtestSet)
@@ -347,6 +354,7 @@ answers
 
 ###Writing output files
 Print out the submission file
+
 
 ```r
 pml_write_files = function(x) {
