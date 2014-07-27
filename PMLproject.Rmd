@@ -1,0 +1,112 @@
+---
+title: "Project"
+author: "Ishan Bhaway"
+date: "Saturday, July 26, 2014"
+output: html_document
+---
+
+
+###Downloading the data and getting the right library
+```{r, echo=TRUE,results='hide',warning=FALSE}
+
+library(caret)
+library(RANN)
+library(lattice)
+library(ggplot2)
+library(randomForest)
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv","pml-training.csv")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv","pml-testing.csv")
+trainSet <- read.csv("pml-training.csv",na.strings = c("NA","#DIV/0!"),comment.char="")
+testSet <- read.csv("pml-testing.csv",na.strings = c("NA","#DIV/0!"),comment.char="")
+```
+
+###Preparing Data Sets both Training And Test
+
+```{r }
+##Preparing Training Data Set
+#the list of the columns with the %age of values missing
+pcentMiss <- apply(trainSet,2, function(x) sum(is.na(x))/nrow(trainSet))
+
+#number of the columns which have more than 95% values missing 
+sum(pcentMiss>.95)
+#removing NA rich columns
+NAIndex<-which(pcentMiss>.95)
+nntrainSet <- trainSet[,-NAIndex] 
+dim(nntrainSet)
+#Removing Index that are not necessary
+removeIndex <- grep("timestamp|X|user_name|new_window",names(nntrainSet))
+vtrainSet<-nntrainSet[,-removeIndex]
+dim(vtrainSet)
+
+
+##Preparing Test Data Set similar to train Data Set
+nntestSet<-testSet[,-NAIndex]
+dim(nntestSet)
+vtestSet<-nntestSet[,-removeIndex]
+dim(vtestSet)
+```
+
+###Partitioning Data Sets
+
+```{r}
+set.seed(1134)
+trainingIndex <- createDataPartition(vtrainSet$classe, list = FALSE, p = 0.7)
+trntrainSet = vtrainSet[trainingIndex, ]
+tsttrainSet = vtrainSet[-trainingIndex, ]
+dim(trntrainSet)
+dim(tsttrainSet)
+prop.table(table(trntrainSet$classe))
+prop.table(table(tsttrainSet$classe))
+```
+
+###Pre Processing all the data sets we have created
+
+```{r}
+num_idx = which(lapply(trntrainSet, class) %in% c("numeric"))
+preModel <- preProcess(trntrainSet[,num_idx], method = c("knnImpute"))
+ptrntrainSet <- cbind(trntrainSet$classe, predict(preModel, trntrainSet[, num_idx]))
+ptsttrainSet <- cbind(tsttrainSet$classe, predict(preModel, tsttrainSet[, num_idx]))
+names(ptrntrainSet)[1] <- "classe"
+names(ptsttrainSet)[1] <- "classe"
+pvtestSet <- predict(preModel, vtestSet[, num_idx])
+```
+
+###Rainforest Model
+
+```{r}
+rf_model <- randomForest(classe ~ ., ptrntrainSet)
+```
+
+
+###in-sample accuracy
+```{r}
+train_pred<-predict(rf_model,ptrntrainSet)
+print(confusionMatrix(train_pred, ptrntrainSet$classe))
+```
+
+###out-sample accuracy
+```{r}
+test_pred<-predict(rf_model,ptsttrainSet)
+print(confusionMatrix(test_pred, ptsttrainSet$classe))
+
+```
+
+##Test Set Prediction Results
+```{r}
+answers<-predict(rf_model,pvtestSet)
+
+answers
+```
+
+###Writing output files
+```{r}
+pml_write_files = function(x) {
+    n = length(x)
+    for (i in 1:n) {
+        filename = paste0("problem_id_", i, ".txt")
+        write.table(x[i], file = filename, quote = FALSE, row.names = FALSE, 
+            col.names = FALSE)
+    }
+}
+pml_write_files(answers)
+```
