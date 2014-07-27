@@ -1,28 +1,28 @@
 ---
-title: "Project"
+title: "Project: Practical Machine Learning"
 author: "Ishan Bhaway"
 date: "Saturday, July 26, 2014"
 output: html_document
 ---
 
+##Data Preparation for the models
 
-###Downloading the data and getting the right library
-```{r, echo=TRUE,results='hide',warning=FALSE}
-
-library(caret)
-library(RANN)
+####Downloading the data and getting the right library
+```{r,cache=TRUE,echo=TRUE,results='hide',warning=FALSE}
 library(lattice)
 library(ggplot2)
+library(caret)
 library(randomForest)
-download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv","pml-training.csv")
-download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv","pml-testing.csv")
+#Download code commented as one needs to download it only once....
+#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv","pml-training.csv")
+#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv","pml-testing.csv")
 trainSet <- read.csv("pml-training.csv",na.strings = c("NA","#DIV/0!"),comment.char="")
 testSet <- read.csv("pml-testing.csv",na.strings = c("NA","#DIV/0!"),comment.char="")
 ```
 
-###Preparing Data Sets both Training And Test
+####Preparing Data Sets both Training And Test
 
-```{r }
+```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 ##Preparing Training Data Set
 #the list of the columns with the %age of values missing
 pcentMiss <- apply(trainSet,2, function(x) sum(is.na(x))/nrow(trainSet))
@@ -44,11 +44,15 @@ nntestSet<-testSet[,-NAIndex]
 dim(nntestSet)
 vtestSet<-nntestSet[,-removeIndex]
 dim(vtestSet)
+##The plot for the training set data set
+qplot(pitch_belt,roll_belt,data=vtrainSet,col=classe)
 ```
 
-###Partitioning Data Sets
+##Modelling the data:
 
-```{r}
+####Partitioning Data Sets
+
+```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 set.seed(1134)
 trainingIndex <- createDataPartition(vtrainSet$classe, list = FALSE, p = 0.7)
 trntrainSet = vtrainSet[trainingIndex, ]
@@ -59,9 +63,9 @@ prop.table(table(trntrainSet$classe))
 prop.table(table(tsttrainSet$classe))
 ```
 
-###Pre Processing all the data sets we have created
+####Pre Processing all the data sets we have created
 
-```{r}
+```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 num_idx = which(lapply(trntrainSet, class) %in% c("numeric"))
 preModel <- preProcess(trntrainSet[,num_idx], method = c("knnImpute"))
 ptrntrainSet <- cbind(trntrainSet$classe, predict(preModel, trntrainSet[, num_idx]))
@@ -71,35 +75,60 @@ names(ptsttrainSet)[1] <- "classe"
 pvtestSet <- predict(preModel, vtestSet[, num_idx])
 ```
 
-###Rainforest Model
+###Linear Model and associated error
+Building a linear model with linear discriminant analysis and cross-validation
+```{r,cache=TRUE,echo=TRUE,warning=FALSE}
+cvControl <- trainControl(method = "cv", number = 5)
+set.seed(3)
+linFit <- train(classe~.,data=ptrntrainSet, method="lda", trControl=cvControl)
+linFit
+pln<-predict(linFit, newdata=ptrntrainSet)
+cln<-confusionMatrix(pln, ptrntrainSet$classe)
+cln
+#plot for linear model
+qplot(ptrntrainSet$classe,pln,col=ptrntrainSet$classe)
+```
+Accuracy through linear model `r cln$overall[1]*100`%
+Sample error`r (1-cln$overall[1])*100`%>.3 and dot plot showing prediction hitting everywhere which means we can do better
 
-```{r}
+###Rainforest Model
+Trying a nonlinear model, using training data set within the give pml training set
+```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 rf_model <- randomForest(classe ~ ., ptrntrainSet)
 ```
 
 
-###in-sample accuracy
-```{r}
+####training data set accuracy
+
+```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 train_pred<-predict(rf_model,ptrntrainSet)
 print(confusionMatrix(train_pred, ptrntrainSet$classe))
+#plot for training data set accuracy
+qplot(ptrntrainSet$classe,train_pred,col=ptrntrainSet$classe)
 ```
+We can see graph is showing prediciton and actual values are perfectly lined up
 
-###out-sample accuracy
-```{r}
+####test data set accuracy
+```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 test_pred<-predict(rf_model,ptsttrainSet)
-print(confusionMatrix(test_pred, ptsttrainSet$classe))
-
+tm<-confusionMatrix(test_pred, ptsttrainSet$classe)
+print(tm)
+#plot for test data set accuracy
+qplot(ptsttrainSet$classe,test_pred,col=ptsttrainSet$classe)
 ```
+Accuracy through test data set `r tm$overall[1]*100`% which means it i good model!!
+well graph is showing some dots away from the actual values, but as we can see from confusion matrix only few values are deviating.
 
 ##Test Set Prediction Results
-```{r}
+Using the Random Forest Model to predict the values for the requested test cases
+```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 answers<-predict(rf_model,pvtestSet)
-
 answers
 ```
 
 ###Writing output files
-```{r}
+Print out the submission file
+```{r,cache=TRUE,echo=TRUE,warning=FALSE}
 pml_write_files = function(x) {
     n = length(x)
     for (i in 1:n) {
